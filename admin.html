@@ -49,13 +49,13 @@
                             {% endif %}
                         </td>
                         <td>
-                            {% set user_processes = [] %}
+                            {% set user_process_count = 0 %}
                             {% for pid, process in processes.items() %}
                                 {% if process.username == username %}
-                                    {% do user_processes.append(process) %}
+                                    {% set user_process_count = user_process_count + 1 %}
                                 {% endif %}
                             {% endfor %}
-                            {{ user_processes|length }}
+                            {{ user_process_count }}
                         </td>
                     </tr>
                 {% endfor %}
