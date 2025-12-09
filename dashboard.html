@@ -1,0 +1,407 @@
+{% extends "layout.html" %}
+
+{% block title %}Dashboard - Uditanshu Hosting{% endblock %}
+
+{% block head %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h1>Welcome, <span class="username-glow">{{ username }}</span>!</h1>
+    
+    <div class="account-status">
+        <div class="status-badge status-{{ 'premium' if is_premium else 'normal' }}">
+            <i class="fas fa-{{ 'crown' if is_premium else 'user' }}"></i> 
+            {{ 'Premium User' if is_premium else 'Normal User' }}
+        </div>
+        <div class="file-count">
+            <i class="fas fa-file-code"></i> {{ file_count }} / {{ max_files }} files
+        </div>
+        <div class="process-count">
+            <i class="fas fa-microchip"></i> {{ processes|length }} running
+        </div>
+    </div>
+    
+    {% if is_admin %}
+        <div class="admin-notice">
+            <i class="fas fa-shield-alt"></i> Administrator Account
+            <a href="{{ url_for('admin') }}" class="btn btn-sm">
+                <i class="fas fa-cogs"></i> Admin Panel
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+{% if announcements %}
+    <div class="announcements">
+        <div class="section-header">
+            <h2><i class="fas fa-bullhorn"></i> Announcements</h2>
+        </div>
+        
+        <div class="announcement-carousel">
+            {% for announcement in announcements %}
+                <div class="announcement-card">
+                    <div class="announcement-header">
+                        <span class="announcement-author">{{ announcement.author }}</span>
+                        <span class="announcement-date">{{ announcement.timestamp|relative_time }}</span>
+                    </div>
+                    <div class="announcement-body">
+                        {{ announcement.message }}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endif %}
+
+<div class="dashboard-stats">
+    <div class="stat-card">
+        <i class="fas fa-file-code"></i>
+        <h3>Your Files</h3>
+        <p>{{ file_count }} / {{ max_files }}</p>
+    </div>
+    <div class="stat-card">
+        <i class="fas fa-microchip"></i>
+        <h3>Running Processes</h3>
+        <p>{{ processes|length }}</p>
+    </div>
+    <div class="stat-card">
+        <i class="fas fa-hdd"></i>
+        <h3>Storage Used</h3>
+        <p>{{ storage_used|filesizeformat }}</p>
+    </div>
+    <div class="stat-card">
+        <i class="fas fa-bolt"></i>
+        <h3>System Load</h3>
+        <p>{{ system_load }}%</p>
+    </div>
+</div>
+
+<div class="dashboard-sections">
+    <section class="upload-section card">
+        <div class="section-header">
+            <h2><i class="fas fa-cloud-upload-alt"></i> Upload Python File</h2>
+        </div>
+        
+        <form method="POST" action="{{ url_for('upload_file') }}" enctype="multipart/form-data" id="upload-form">
+            <div class="upload-area" id="drop-area">
+                <i class="fas fa-file-code"></i>
+                <p>Drag & drop your .py file here</p>
+                <span>or</span>
+                <label for="file-input" class="btn btn-sm">Select File</label>
+                <input type="file" name="file" id="file-input" accept=".py" required hidden>
+            </div>
+            
+            <div class="file-preview" id="file-preview" style="display:none;">
+                <i class="fas fa-file-code"></i>
+                <div>
+                    <span id="file-name"></span>
+                    <small id="file-size"></small>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn" id="upload-btn" disabled>
+                <i class="fas fa-upload"></i> Upload File
+            </button>
+            
+            {% if file_count >= max_files %}
+                <div class="limit-warning">
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    You've reached your file limit! Delete files to upload new ones.
+                </div>
+            {% endif %}
+        </form>
+    </section>
+    
+    <section class="files-section card">
+        <div class="section-header">
+            <h2><i class="fas fa-folder"></i> Your Files</h2>
+            <span class="badge">{{ files|length }}</span>
+        </div>
+        
+        {% if files %}
+            <ul class="file-list">
+                {% for file in files %}
+                    <li>
+                        <div class="file-info">
+                            <i class="fas fa-file-code"></i>
+                            <div>
+                                <span>{{ file }}</span>
+                                <small>{{ file_sizes[file]|filesizeformat }} • Uploaded {{ file_dates[file]|relative_time }}</small>
+                            </div>
+                        </div>
+                        <div class="file-actions">
+                            <a href="{{ url_for('start_file', filename=file) }}" 
+                               class="btn btn-sm btn-success"
+                               title="Start Process">
+                                <i class="fas fa-play"></i>
+                            </a>
+                            <button class="btn btn-sm btn-danger delete-file" 
+                                    data-filename="{{ file }}"
+                                    title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <div class="empty-state">
+                <i class="fas fa-folder-open"></i>
+                <p>No files uploaded yet</p>
+                <p>Upload your first Python script to get started</p>
+            </div>
+        {% endif %}
+    </section>
+</div>
+
+<section class="processes-section card">
+    <div class="section-header">
+        <h2><i class="fas fa-microchip"></i> Running Processes</h2>
+        <span class="badge">{{ processes|length }}</span>
+    </div>
+    
+    {% if processes %}
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>File</th>
+                        <th>Started</th>
+                        <th>Status</th>
+                        <th>CPU</th>
+                        <th>Memory</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pid, process in processes.items() %}
+                        <tr>
+                            <td>
+                                <div class="file-info">
+                                    <i class="fas fa-file-code"></i>
+                                    <span>{{ process.filename }}</span>
+                                </div>
+                            </td>
+                            <td>{{ process.start_time|relative_time }}</td>
+                            <td>
+                                <span class="status status-{{ process.status }}">
+                                    <span class="status-indicator"></span>
+                                    {{ process.status|capitalize }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="usage-bar">
+                                    <div class="usage-fill" style="width: {{ process.cpu }}%"></div>
+                                    <span>{{ process.cpu }}%</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="usage-bar">
+                                    <div class="usage-fill" style="width: {{ process.memory }}%"></div>
+                                    <span>{{ process.memory }}MB</span>
+                                </div>
+                            </td>
+                            <td class="process-actions">
+                                <a href="{{ url_for('view_logs', process_id=pid) }}" 
+                                   class="btn btn-sm"
+                                   title="View Logs">
+                                    <i class="fas fa-file-alt"></i>
+                                </a>
+                                
+                                {% if process.status == 'running' %}
+                                    <a href="{{ url_for('stop_file', process_id=pid) }}" 
+                                       class="btn btn-sm btn-danger action-stop"
+                                       title="Stop Process">
+                                        <i class="fas fa-stop"></i>
+                                    </a>
+                                    <a href="{{ url_for('restart_file', process_id=pid) }}" 
+                                       class="btn btn-sm btn-warning"
+                                       title="Restart Process">
+                                        <i class="fas fa-redo"></i>
+                                    </a>
+                                {% else %}
+                                    <a href="{{ url_for('start_file', filename=process.filename) }}" 
+                                       class="btn btn-sm btn-success"
+                                       title="Start Process">
+                                        <i class="fas fa-play"></i>
+                                    </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="process-controls">
+            <button id="refresh-processes" class="btn btn-sm">
+                <i class="fas fa-sync"></i> Refresh Status
+            </button>
+            <button id="start-all" class="btn btn-sm btn-success">
+                <i class="fas fa-play"></i> Start All
+            </button>
+            <button id="stop-all" class="btn btn-sm btn-danger">
+                <i class="fas fa-stop"></i> Stop All
+            </button>
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <i class="fas fa-microchip"></i>
+            <p>No running processes</p>
+            <p>Start a Python file to run it as a process</p>
+        </div>
+    {% endif %}
+</section>
+
+<!-- File Delete Modal -->
+<div class="modal" id="delete-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Delete File</h3>
+            <button class="close-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete <strong id="delete-filename"></strong>?</p>
+            <p class="warning">This will permanently delete the file and stop any running processes!</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="cancel-delete">Cancel</button>
+            <a href="#" class="btn btn-danger" id="confirm-delete">Delete Permanently</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // File upload handling
+        const dropArea = document.getElementById('drop-area');
+        const fileInput = document.getElementById('file-input');
+        const filePreview = document.getElementById('file-preview');
+        const fileName = document.getElementById('file-name');
+        const fileSize = document.getElementById('file-size');
+        const uploadBtn = document.getElementById('upload-btn');
+        
+        // Drag and drop events
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight() {
+            dropArea.classList.add('highlight');
+        }
+        
+        function unhighlight() {
+            dropArea.classList.remove('highlight');
+        }
+        
+        dropArea.addEventListener('drop', handleDrop, false);
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const file = dt.files[0];
+            handleFile(file);
+        }
+        
+        fileInput.addEventListener('change', function() {
+            handleFile(this.files[0]);
+        });
+        
+        function handleFile(file) {
+            if (file && file.name.endsWith('.py')) {
+                filePreview.style.display = 'flex';
+                fileName.textContent = file.name;
+                fileSize.textContent = formatFileSize(file.size);
+                uploadBtn.disabled = false;
+            } else {
+                alert('Only Python (.py) files are allowed');
+            }
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1) + ' ' + sizes[i]);
+        }
+        
+        // File deletion
+        const deleteModal = document.getElementById('delete-modal');
+        const deleteFilename = document.getElementById('delete-filename');
+        const confirmDelete = document.getElementById('confirm-delete');
+        
+        document.querySelectorAll('.delete-file').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const filename = this.dataset.filename;
+                deleteFilename.textContent = filename;
+                confirmDelete.href = `/delete/${filename}`;
+                deleteModal.style.display = 'block';
+            });
+        });
+        
+        // Close modal
+        document.querySelector('.close-modal').addEventListener('click', function() {
+            deleteModal.style.display = 'none';
+        });
+        
+        document.getElementById('cancel-delete').addEventListener('click', function() {
+            deleteModal.style.display = 'none';
+        });
+        
+        window.addEventListener('click', function(e) {
+            if (e.target === deleteModal) {
+                deleteModal.style.display = 'none';
+            }
+        });
+        
+        // Process management
+        document.getElementById('refresh-processes').addEventListener('click', refreshProcesses);
+        document.getElementById('start-all').addEventListener('click', startAllProcesses);
+        document.getElementById('stop-all').addEventListener('click', stopAllProcesses);
+        
+        function refreshProcesses() {
+            location.reload();
+        }
+        
+        function startAllProcesses() {
+            document.querySelectorAll('.btn-success[title="Start Process"]').forEach(btn => {
+                window.open(btn.href, '_self');
+            });
+        }
+        
+        function stopAllProcesses() {
+            if (confirm('Stop all running processes?')) {
+                document.querySelectorAll('.action-stop').forEach(btn => {
+                    window.open(btn.href, '_self');
+                });
+            }
+        }
+        
+        // Confirm process actions
+        document.querySelectorAll('.action-stop').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                if (!confirm('Are you sure you want to stop this process?')) {
+                    e.preventDefault();
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}
