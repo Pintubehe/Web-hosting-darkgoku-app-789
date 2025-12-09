@@ -3,39 +3,17 @@
 {% block title %}Home - GOKU Hosting{% endblock %}
 
 {% block content %}
-    <div class="hero" style="text-align: center; padding: 50px 0;">
-        <h1 style="color: var(--secondary); text-shadow: 0 0 20px var(--secondary);">
-            GOKU HOSTING
-        </h1>
-        <p style="font-size: 1.2em; margin: 20px 0 40px;">
-            Python Web Hosting Platform - Upload and manage your Python scripts
-        </p>
-        
-        {% if 'username' not in session %}
-            <div class="hero-buttons">
-                <a href="{{ url_for('login') }}" class="btn">Login</a>
-                <a href="{{ url_for('register') }}" class="btn">Register</a>
-            </div>
-        {% else %}
-            <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Go to Dashboard</a>
-        {% endif %}
-    </div>
+<div class="hero">
+    <h1>GOKU HOSTING</h1>
+    <p>Python Web Hosting Platform</p>
     
-    <div class="features" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; margin-top: 50px;">
-        <div class="feature-card" style="background: var(--card-bg); padding: 25px; border-radius: 10px; text-align: center;">
-            <i class="fas fa-cloud-upload-alt" style="font-size: 2em; color: var(--secondary); margin-bottom: 15px;"></i>
-            <h3>Upload Python Files</h3>
-            <p>Upload and manage your Python scripts</p>
+    {% if 'username' not in session %}
+        <div class="hero-buttons">
+            <a href="{{ url_for('login') }}" class="btn">Login</a>
+            <a href="{{ url_for('register') }}" class="btn">Register</a>
         </div>
-        <div class="feature-card" style="background: var(--card-bg); padding: 25px; border-radius: 10px; text-align: center;">
-            <i class="fas fa-microchip" style="font-size: 2em; color: var(--accent); margin-bottom: 15px;"></i>
-            <h3>Process Management</h3>
-            <p>Start, stop, and monitor processes</p>
-        </div>
-        <div class="feature-card" style="background: var(--card-bg); padding: 25px; border-radius: 10px; text-align: center;">
-            <i class="fas fa-shield-alt" style="font-size: 2em; color: var(--success); margin-bottom: 15px;"></i>
-            <h3>Secure Hosting</h3>
-            <p>Safe and reliable hosting platform</p>
-        </div>
-    </div>
+    {% else %}
+        <a href="{{ url_for('dashboard') }}" class="btn">Go to Dashboard</a>
+    {% endif %}
+</div>
 {% endblock %}
